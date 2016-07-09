@@ -1,0 +1,1 @@
+- Pre lollipop not supported
