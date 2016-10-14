@@ -22,33 +22,51 @@ import android.speech.tts.UtteranceProgressListener;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import org.w3c.dom.Text;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
 
 
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-public class MainActivity extends AppCompatActivity implements TextToSpeech.OnInitListener{
+public class MainActivity extends AppCompatActivity implements TextToSpeech.OnInitListener,TabLayout.OnTabSelectedListener{
 
     private boolean mScanning;
     //Menu menu;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeScanner scanner;
     private Handler mHandler;
+    HorizontalScrollView horizontalscroll;
+    //This is our viewPager
+    private ViewPager viewPager;
     private static final long SCAN_PERIOD = 10000;
+    Handler scanperiodically;
+    /*Runnable r=new Runnable() {
+        @Override
+        public void run() {
+
+            h.postDelayed(this, 1000);
+        }
+    };*/
+    ArrayList<Artifact> items;
+    Artifact curritem;
     TextToSpeech tts;
     int current;
     TypedArray imgs;
@@ -97,6 +115,32 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
             finish();
         }
+
+        //Krish start
+        horizontalscroll = (HorizontalScrollView)findViewById(R.id.horizontalScrollView);
+
+
+        //Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        //setSupportActionBar(toolbar);
+
+        TabLayout tabLayout = (TabLayout) findViewById(R.id.tabLayout);
+
+        tabLayout.addTab(tabLayout.newTab().setText("Text"));
+        tabLayout.addTab(tabLayout.newTab().setText("Music"));
+        tabLayout.addTab(tabLayout.newTab().setText("Videos"));
+        tabLayout.setTabGravity(TabLayout.GRAVITY_FILL);
+
+        viewPager = (ViewPager) findViewById(R.id.pager);
+
+        Pager adapter = new Pager(getSupportFragmentManager(), tabLayout.getTabCount());
+
+        viewPager.setAdapter(adapter);
+
+        //tabLayout.setupWithViewPager(viewPager);
+
+        tabLayout.setOnTabSelectedListener((TabLayout.OnTabSelectedListener) this);
+        //Krish end
+
         setupBluetoothAdapter();
         // Register for broadcasts on BluetoothAdapter state change
         IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
@@ -104,12 +148,25 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         current=-1;
         descp=getResources().getStringArray(R.array.Artifacts);
         imgs=getResources().obtainTypedArray(R.array.Arti_imgs);
+
         tv=(TextView)findViewById(R.id.textview);
         img=(ImageView)findViewById(R.id.imageView);
         //fragment=getSupportFragmentManager().findFragmentById(R.id.fragment);
     }
 
 
+    @Override
+    public void onTabSelected(TabLayout.Tab tab) {
+        viewPager.setCurrentItem(tab.getPosition());
+    }
+
+    @Override
+    public void onTabUnselected(TabLayout.Tab tab) {
+    }
+
+    @Override
+    public void onTabReselected(TabLayout.Tab tab) {
+    }
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -201,7 +258,8 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             if(tts!=null&&current!=-1)
             {
                 if(tts.isSpeaking()) {
-                    menu.findItem(R.id.stop_speech).setVisible(true);
+                    menu.findItem
+                            (R.id.stop_speech).setVisible(true);
                     menu.findItem(R.id.speak_out).setVisible(false);
                 }
                 else{
@@ -236,7 +294,11 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         //noinspection SimplifiableIfStatement
         switch (item.getItemId()) {
             case R.id.menu_scan:
-                startLeScan(true);
+                if(items!=null)
+                {
+                   items.clear();
+                }
+            startLeScan(true);
                 break;
             case R.id.menu_stop:
                 startLeScan(false);
@@ -278,7 +340,16 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         }
         invalidateOptionsMenu();
     }
+    double getDistance(int rssi, int txPower) {
+    /*
+     * RSSI = TxPower - 10 * n * lg(d)
+     * n = 2 (in free space)
+     *
+     * d = 10 ^ ((TxPower - RSSI) / (10 * n))
+     */
 
+        return Math.pow(10d, ((double) txPower - rssi) / (10 * 2));
+    }
     private ScanCallback scanCallback=new ScanCallback(){
 
         @Override
@@ -288,9 +359,18 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             String record;
             record = bytesToHexString(mScanRecord.getBytes());
             Log.i("Got this:", record);
-            int has=hashFunction(record.substring(18, 50), record.substring(50, 54), record.substring(54, 58));
+            int rssi=result.getRssi();
+            Log.i("TX:",record.substring(58,60));
+            int txpower=Integer.parseInt(record.substring(58,60),16)-256;
+            Log.i("TXPOWER:",txpower+"");
+            double distance=getDistance(rssi,txpower);
+            Log.i("Distance:",distance+"");
+            Artifact has=hashFunction(record.substring(18, 50), record.substring(50, 54), record.substring(54, 58));
+            has.setCurdist(distance);
             Log.i("ONSCANRESULT",Thread.currentThread().getName());
-            displayFragment(has);
+            if(!items.contains(has))
+            items.add(has);
+            displayFragment();
 
         }
 
@@ -307,23 +387,28 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         }
     };
 
-    public void displayFragment(int hashcode) {
+    public void displayFragment() {
+        Log.i("DisplayFragment",Thread.currentThread().getName());
+        speakOut(descp[0]);
+        /*tv.setText(""+distance);
         if(current!=hashcode)
         {
             if(tts.isSpeaking())
                 tts.stop();
             current =hashcode;
-            tv.setText(descp[hashcode]);
+            //tv.setText(descp[hashcode]);
+            tv.setText(""+distance);
             img.setImageResource(imgs.getResourceId(hashcode,-1));
             speakOut(descp[hashcode]);
-        }
+        }*/
     }
-    public int hashFunction(String uid,String maj,String min) {
+    public Artifact hashFunction(String uid,String maj,String min) {
         //Create hashing code
         Log.i("UUID",uid);
         Log.i("MAJOR",maj);
         Log.i("MINOR",min);
-        return 0;
+        Artifact obj=new Artifact(uid,maj,min);
+        return obj;
     }
 
     @NonNull
