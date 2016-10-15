@@ -20,7 +20,7 @@ public class VideoActivity extends Activity {
         super.onCreate(savedInstanceState);
         try {
             setContentView(R.layout.video);
-            String link = "http://f.wload.vc/files/sfd440/219529/Fantastic%20Beasts%20And%20Where%20To%20Find%20Them%20(Theatrical%20Trailer)(wapking.fm).mp4";
+            String link = "http://f.wload.vc/files/sfd442/220782/Power%20Rangers%20(Theatrical%20Trailer)%20HD(wapking.fm).mp4";
             videoView = (VideoView) findViewById(R.id.videoView);
             MediaController mediaController = new MediaController(this);
             mediaController.setAnchorView(videoView);

@@ -73,7 +73,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     String[] descp;
     //Fragment fragment;
     TextView tv;
-    ImageView img;
+    ImageView img[]=new ImageView[3];
     public void setupBluetoothAdapter()
     {
         // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to BluetoothAdapter through BluetoothManager.
@@ -150,7 +150,9 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         imgs=getResources().obtainTypedArray(R.array.Arti_imgs);
 
         tv=(TextView)findViewById(R.id.textview);
-        img=(ImageView)findViewById(R.id.imageView);
+        img[0]=(ImageView)findViewById(R.id.imageView1);
+        img[1]=(ImageView)findViewById(R.id.imageView2);
+        img[2]=(ImageView)findViewById(R.id.imageView3);
         //fragment=getSupportFragmentManager().findFragmentById(R.id.fragment);
     }
 
@@ -386,10 +388,14 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
         }
     };
-
+    //Need Modification ,this is also static
     public void displayFragment() {
         Log.i("DisplayFragment",Thread.currentThread().getName());
-        speakOut(descp[0]);
+        Artifact temp=items.get(0);
+        img[0].setImageResource(temp.imgs.get(0));
+        img[1].setImageResource(temp.imgs.get(1));
+        img[2].setImageResource(temp.imgs.get(2));
+        tv.setText(temp.descrip);
         /*tv.setText(""+distance);
         if(current!=hashcode)
         {
@@ -408,6 +414,13 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         Log.i("MAJOR",maj);
         Log.i("MINOR",min);
         Artifact obj=new Artifact(uid,maj,min);
+        List<Integer> images = null;
+        //This is static right now , fixed values are being added
+        images.add(imgs.getResourceId(0+1,-1));
+        images.add(imgs.getResourceId(0+2,-1));
+        images.add(imgs.getResourceId(0+3,-1));
+        obj.setDescrip(descp[0]);
+        obj.setImgs(images);
         return obj;
     }
 

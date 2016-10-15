@@ -5,6 +5,9 @@
     </string-array>
     <integer-array name="Arti_imgs">
         <item>@drawable/i0</item>
+        <item>@drawable/image_1</item>
+        <item>@drawable/image_2</item>
+        <item>@drawable/image_3</item>
     </integer-array>
     <string-array name="music_track_1">
     <item >http://f.wload.vc/files/sfd439/219159/Channa%20Mereya_64(wapking.fm).mp3</item>
