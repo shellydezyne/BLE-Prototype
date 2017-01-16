@@ -28,6 +28,7 @@ public class Tab_1 extends Fragment {
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
+    TextView textView;
 
     private OnFragmentInteractionListener mListener;
 
@@ -66,9 +67,12 @@ public class Tab_1 extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        TextView textView = new TextView(getActivity());
+        View view = inflater.inflate(R.layout.tab_1, container, false);
+
+         textView = (TextView)view.findViewById(R.id.textView);
+        textView.setText("");
         //textView.setText(R.string.hello_blank_fragment);
-        return inflater.inflate(R.layout.tab_1, container, false);
+        return view ;
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -109,4 +113,12 @@ public class Tab_1 extends Fragment {
         // TODO: Update argument type and name
         void onFragmentInteraction(Uri uri);
     }
+
+
+    public void settext(String str )
+    {
+
+        textView.setText(str);
+    }
+
 }

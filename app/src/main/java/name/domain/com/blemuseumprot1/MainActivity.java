@@ -73,6 +73,11 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     String[] descp;
     //Fragment fragment;
     TextView tv;
+
+    Tab_1 frag;
+    Pager adapter;
+
+
     ImageView img[]=new ImageView[3];
     public void setupBluetoothAdapter()
     {
@@ -109,6 +114,10 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         mHandler = new Handler();
+
+        items = new ArrayList<Artifact>();            //initialised items
+
+
         tts = new TextToSpeech(this,this);
         askPerm();
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
@@ -132,7 +141,8 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
         viewPager = (ViewPager) findViewById(R.id.pager);
 
-        Pager adapter = new Pager(getSupportFragmentManager(), tabLayout.getTabCount());
+        adapter = new Pager(getSupportFragmentManager(), tabLayout.getTabCount());
+
 
         viewPager.setAdapter(adapter);
 
@@ -140,6 +150,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
         tabLayout.setOnTabSelectedListener((TabLayout.OnTabSelectedListener) this);
         //Krish end
+
 
         setupBluetoothAdapter();
         // Register for broadcasts on BluetoothAdapter state change
@@ -149,7 +160,11 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         descp=getResources().getStringArray(R.array.Artifacts);
         imgs=getResources().obtainTypedArray(R.array.Arti_imgs);
 
-        tv=(TextView)findViewById(R.id.textview);
+       // tv= (TextView)findViewById(R.id.textView);
+
+
+
+
         img[0]=(ImageView)findViewById(R.id.imageView1);
         img[1]=(ImageView)findViewById(R.id.imageView2);
         img[2]=(ImageView)findViewById(R.id.imageView3);
@@ -289,6 +304,12 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        tts.stop();
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
@@ -395,7 +416,17 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         img[0].setImageResource(temp.imgs.get(0));
         img[1].setImageResource(temp.imgs.get(1));
         img[2].setImageResource(temp.imgs.get(2));
-        tv.setText(temp.descrip);
+       // tv.setText(temp.descrip);
+        frag = (Tab_1)adapter.getRegisteredFragment(0);
+        if (frag!= null) {
+            frag.settext(String.valueOf(temp.descrip));
+        }
+       else {
+            Log.i("MainActivity",String.valueOf(frag));
+        }
+
+        speakOut(temp.descrip);
+
         /*tv.setText(""+distance);
         if(current!=hashcode)
         {
@@ -414,8 +445,9 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         Log.i("MAJOR",maj);
         Log.i("MINOR",min);
         Artifact obj=new Artifact(uid,maj,min);
-        List<Integer> images = null;
+        List<Integer> images = new ArrayList<>();           //initialised images
         //This is static right now , fixed values are being added
+
         images.add(imgs.getResourceId(0+1,-1));
         images.add(imgs.getResourceId(0+2,-1));
         images.add(imgs.getResourceId(0+3,-1));
