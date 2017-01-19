@@ -23,6 +23,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".VideoActivity"/>
+
+        <service android:name=".BackgroundScan"/>
     </application>
 
 </manifest>
