@@ -25,6 +25,7 @@ import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -82,7 +83,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     ImageView img[]=new ImageView[3];
 
 
-    // Bluetooth is turned on through this
+    // Bluetooth is checked through this
 
     public void setupBluetoothAdapter()
     {
@@ -158,7 +159,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         tabLayout.setOnTabSelectedListener((TabLayout.OnTabSelectedListener) this);
         //Krish end
 
-        startService(new Intent(this,BackgroundScan.class));
+
 
         setupBluetoothAdapter();
         // Register for broadcasts on BluetoothAdapter state change
@@ -175,6 +176,9 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         img[1]=(ImageView)findViewById(R.id.imageView2);
         img[2]=(ImageView)findViewById(R.id.imageView3);
         //fragment=getSupportFragmentManager().findFragmentById(R.id.fragment);
+
+
+        startService(new Intent(this,BackgroundScan.class));
     }
 
 
@@ -310,9 +314,17 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
     @Override
     protected void onPause() {
+
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
         super.onPause();
         tts.stop();
 
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,new IntentFilter("my-event"));
     }
 
     @Override
@@ -334,6 +346,9 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                    items.clear();
                 }
             startLeScan(true);
+
+                // service can be started here
+
                 break;
             case R.id.menu_stop:
                 startLeScan(false);
@@ -489,6 +504,8 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             speakOut(descp[hashcode]);
         }*/
     }
+
+
     public Artifact hashFunction(String uid,String maj,String min) {
         //Create hashing code
         Log.i("UUID",uid);
@@ -620,5 +637,15 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             }*/
             //while(tts.isSpeaking());
         }
+
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Extract data included in the Intent
+            String message = intent.getStringExtra("message");
+            Log.d("receiver", "Got message: " + message);
+            frag.settext(message);
+        }
+    };
  }
 
