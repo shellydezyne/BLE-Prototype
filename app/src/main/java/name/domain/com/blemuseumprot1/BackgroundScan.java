@@ -9,6 +9,7 @@ import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
 import android.content.Intent;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
@@ -185,7 +186,10 @@ public class BackgroundScan extends Service {
     private void sendMessage() {
         Intent intent = new Intent("my-event");
         // add data
-        intent.putExtra("message", temp.descrip);
+        Bundle extras = new Bundle();
+        extras.putString("message", temp.descrip);
+        extras.putString("minor", minor);
+        intent.putExtras(extras);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 

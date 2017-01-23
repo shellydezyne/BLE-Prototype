@@ -53,7 +53,7 @@
                     android:adjustViewBounds="false"
                     android:cropToPadding="false" />
 
-                <ImageView
+        <!--        <ImageView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:id="@+id/imageView2"
@@ -63,7 +63,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:id="@+id/imageView3"
-                android:scaleType="fitXY" />
+                android:scaleType="fitXY" />    -->
+
             </LinearLayout>
 
         </HorizontalScrollView>

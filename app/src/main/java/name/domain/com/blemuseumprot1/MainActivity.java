@@ -57,7 +57,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     HorizontalScrollView horizontalscroll;
     //This is our viewPager
     private ViewPager viewPager;
-    String temprec;
+    String temprec,minor;
     double tem=50.00;
     Artifact has,temp;
     private static final long SCAN_PERIOD = 10000;
@@ -78,9 +78,11 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     //Fragment fragment;
     TextView tv;
 
-    Tab_1 frag;
+     Tab_1 frag;
     Pager adapter;
-    ImageView img[]=new ImageView[3];
+    //ImageView img[]=new ImageView[3];
+    ImageView img;
+    int i;
 
 
     // Bluetooth is checked through this
@@ -170,12 +172,14 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         descp=getResources().getStringArray(R.array.Artifacts);
         imgs=getResources().obtainTypedArray(R.array.Arti_imgs);
 
-       // tv= (TextView)findViewById(R.id.textView);
 
-        img[0]=(ImageView)findViewById(R.id.imageView1);
+
+       /* img[0]=(ImageView)findViewById(R.id.imageView1);
         img[1]=(ImageView)findViewById(R.id.imageView2);
-        img[2]=(ImageView)findViewById(R.id.imageView3);
-        //fragment=getSupportFragmentManager().findFragmentById(R.id.fragment);
+        img[2]=(ImageView)findViewById(R.id.imageView3);*/
+
+        img = (ImageView)findViewById(R.id.imageView1);
+
 
 
         startService(new Intent(this,BackgroundScan.class));
@@ -461,27 +465,36 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
          temp=items.get(0);
         String min = temp.minor;
-        img[0].setImageResource(temp.imgs.get(0));
+        Log.i("MainActivity",min);
+
+
+      /*  img[0].setImageResource(temp.imgs.get(0));
         img[1].setImageResource(temp.imgs.get(1));
-        img[2].setImageResource(temp.imgs.get(2));
-       // tv.setText(temp.descrip);
-        frag = (Tab_1)adapter.getRegisteredFragment(0);
+        img[2].setImageResource(temp.imgs.get(2));*/
+
+
+
+
 
         if (Integer.parseInt(min)==1000)
         {
           temp.descrip=descp[0];
+            img.setImageResource(R.drawable.image_1);
         }
         else if (Integer.parseInt(min)==1001)
         {
             temp.descrip=descp[1];
+            img.setImageResource(R.drawable.image_2);
         }
         else if (Integer.parseInt(min)==1002)
         {
             temp.descrip=descp[2];
+            img.setImageResource(R.drawable.image_3);
         }
         else if (Integer.parseInt(min)==1003)
         {
             temp.descrip=descp[3];
+            img.setImageResource(R.drawable.image_4);
         }
         if (frag!= null) {
             frag.settext(String.valueOf(temp.descrip));
@@ -642,9 +655,36 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         @Override
         public void onReceive(Context context, Intent intent) {
             // Extract data included in the Intent
-            String message = intent.getStringExtra("message");
+          //  frag = (Tab_1)adapter.getRegisteredFragment(0);
+
+
+            Bundle extras = intent.getExtras();
+             minor = extras.getString("minor");
+            String message = extras.getString("message");
             Log.d("receiver", "Got message: " + message);
+            Log.d("receiver", "Got minor: " + minor);
+
+            frag = (Tab_1)adapter.getRegisteredFragment(0);
+            if (Integer.parseInt(minor)==1000)
+            {
+                img.setImageResource(R.drawable.image_1);
+            }
+            else if (Integer.parseInt(minor)==1001)
+            {
+                img.setImageResource(R.drawable.image_2);
+            }
+            else if (Integer.parseInt(minor)==1002)
+            {
+                img.setImageResource(R.drawable.image_3);
+            }
+            else if (Integer.parseInt(minor)==1003)
+            {
+                img.setImageResource(R.drawable.image_4);
+            }
             frag.settext(message);
+
+            tts.stop();
+            speakOut(message);
         }
     };
  }
