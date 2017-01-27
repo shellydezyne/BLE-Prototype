@@ -3,10 +3,14 @@ package name.domain.com.blemuseumprot1;
 
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -33,14 +37,16 @@ import java.util.List;
 public class BackgroundScan extends Service {
 
     public final Handler handler = new Handler();
-    private BluetoothLeScanner scanner;
+    BluetoothLeScanner scanner;
+    BluetoothAdapter adapter;
     boolean mScanning;
     double tem=50.00;
-    String temprec;
     static String minor="0000";
     Artifact has,temp;
     ArrayList<Artifact> items;
     String[] descp;
+    Sync sync;
+    static int value=0,no=0;
 
 
     @Override
@@ -55,32 +61,45 @@ public class BackgroundScan extends Service {
         items = new ArrayList<Artifact>();
         descp=getResources().getStringArray(R.array.Artifacts);
         scanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
+        final BluetoothManager bluetoothManager =
+                (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
 
-
-       // mScanning = false;
-       // scanner.stopScan(scanCallback);
+        adapter = bluetoothManager.getAdapter();
 
         Log.i("Service","Service started");
-        Sync sync = new Sync(call,10*1000);
+         sync = new Sync(call,10*1000);
     }
 
 
     final private Runnable call = new Runnable() {
         @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
         public void run() {
-            //This is where my sync code will be, but for testing purposes I only have a Log statement
+
             Log.v("test","this will run every minute");
 
             mScanning = true;
-            scanner.startScan(scanCallback);
 
+            if (adapter.isEnabled()) {
+                if (scanner != null) {
+                    scanner.startScan(scanCallback);
+                }
+            }
+            else
+            {
+                Toast.makeText(getApplicationContext(), R.string.Bluetooth_off,
+                        Toast.LENGTH_LONG).show();
+
+            }
+
+
+          //  scanner.startScan(scanCallback);
             handler.postDelayed(call,10*1000);
         }
     };
     public class Sync {
         Runnable task;
 
-        public Sync(Runnable task, long time) {
+        Sync(Runnable task, long time) {
             this.task = task;
             handler.removeCallbacks(task);
             handler.postDelayed(task, time);
@@ -95,46 +114,49 @@ public class BackgroundScan extends Service {
             super.onScanResult(callbackType, result);
             ScanRecord mScanRecord=result.getScanRecord();
             String record;
-
             record = bytesToHexString(mScanRecord.getBytes());
-            Log.i("Got this:", record);
-            int rssi=result.getRssi();
-            Log.i("TX:",record.substring(58,60));
-            int txpower=Integer.parseInt(record.substring(58,60),16)-256;
-            Log.i("TXPOWER:",txpower+"");
-            double distance=getDistance(rssi,txpower);
-            Log.i("Distance:",distance+"");
+                Log.i("Got this:", record);
+                int rssi = result.getRssi();
+                value = rssi + value;
+                no++;
+                int avg = value / no;
+                Log.i("Avg rssi", String.valueOf(avg));
+                Log.i("RSSI:", String.valueOf(rssi));
+                Log.i("TX:", record.substring(58, 60));
+                int txpower = Integer.parseInt(record.substring(58, 60), 16) - 256;
+                Log.i("TXPOWER:", txpower + "");
+                double distance = getDistance(rssi, txpower);
+                Log.i("Distance:", distance + "");
 
 
-            if (tem>distance)
-            {
-                if (minor.equals(record.substring(54,58)))
-                {
-                        Log.i("Serice","same minor");
+                if (tem > distance) {
+                    if (minor.equals(record.substring(54, 58))) {
+                        Log.i("Service", "same minor");
+
+                        Log.i("UUID", record.substring(18, 50));
+                    } else {
+                        Log.i("UUID", record.substring(18, 50));
+                        Log.i("MAJOR", record.substring(50, 54));
+                        Log.i("MINOR", record.substring(54, 58));
+
+                        minor = record.substring(54, 58);
+
+                        has = hashFunction(record.substring(18, 50), record.substring(50, 54), record.substring(54, 58));
 
 
-                }
-                else
-                {
-                    Log.i("UUID",record.substring(18, 50));
-                    Log.i("MAJOR",record.substring(50, 54));
-                    Log.i("MINOR",record.substring(54, 58));
-                    minor = record.substring(54,58);
-
-                    has=hashFunction(record.substring(18, 50), record.substring(50, 54), record.substring(54, 58));
-
-                    if(!items.contains(has))
-                        items.add(has);
+                        if (!items.contains(has))
+                            items.add(has);
                         Log.i("temp", String.valueOf(items));
-                    displayText();
+                        displayText();
+                    }
                 }
-            }
 
 
-            tem =distance;
-            Log.i("Service",String.valueOf(tem));
-            Log.i("temp",String.valueOf(tem));
-            Log.i("SERVICEONSCANRESULT",Thread.currentThread().getName());
+                tem = distance;
+                Log.i("Service", String.valueOf(tem));
+                Log.i("temp", String.valueOf(tem));
+                Log.i("SERVICEONSCANRESULT", Thread.currentThread().getName());
+
 
         }
 
@@ -172,26 +194,12 @@ public class BackgroundScan extends Service {
             temp.descrip=descp[3];
         }
 
-       /* if (frag!= null) {
-            frag.settext(String.valueOf(temp.descrip));
-        }
-        else {
-            Log.i("MainActivity",String.valueOf(frag));
-        }*/
 
         sendMessage();
 
     }
 
-    private void sendMessage() {
-        Intent intent = new Intent("my-event");
-        // add data
-        Bundle extras = new Bundle();
-        extras.putString("message", temp.descrip);
-        extras.putString("minor", minor);
-        intent.putExtras(extras);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-    }
+
 
 
     public static String bytesToHexString(byte[] bytes) {
@@ -201,21 +209,23 @@ public class BackgroundScan extends Service {
         }
         return buffer.toString();
     }
-
+    private void sendMessage() {
+        Intent intent = new Intent("my-event");
+        // add data
+        Bundle extras = new Bundle();
+        extras.putString("message", temp.descrip);
+        extras.putString("minor", minor);
+        intent.putExtras(extras);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
     double getDistance(int rssi, int txPower) {
 
         return Math.pow(10d, ((double) txPower - rssi) / (10 * 2));
     }
 
     public Artifact hashFunction(String uid,String maj,String min) {
-        //Create hashing code
-        Log.i("UUID",uid);
-        Log.i("MAJOR",maj);
-        Log.i("MINOR",min);
         Artifact obj=new Artifact(uid,maj,min);
-        List<Integer> images = new ArrayList<>();           //initialised images
-        //This is static right now , fixed values are being added
-
+        List<Integer> images = new ArrayList<>();
 
         return obj;
     }

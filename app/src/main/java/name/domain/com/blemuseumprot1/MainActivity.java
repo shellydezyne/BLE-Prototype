@@ -14,9 +14,12 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.PersistableBundle;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.support.annotation.NonNull;
@@ -33,6 +36,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.WindowManager;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -57,32 +61,20 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     HorizontalScrollView horizontalscroll;
     //This is our viewPager
     private ViewPager viewPager;
-    String temprec,minor;
+    String temprec,minor,message;
     double tem=50.00;
     Artifact has,temp;
     private static final long SCAN_PERIOD = 10000;
-    Handler scanperiodically;
-    /*Runnable r=new Runnable() {
-        @Override
-        public void run() {
-
-            h.postDelayed(this, 1000);
-        }
-    };*/
     ArrayList<Artifact> items;
-    Artifact curritem;
     TextToSpeech tts;
     int current;
     TypedArray imgs;
     String[] descp;
-    //Fragment fragment;
-    TextView tv;
-
+    String actmessage;
      Tab_1 frag;
+    Tab_2 frag2;
     Pager adapter;
-    //ImageView img[]=new ImageView[3];
     ImageView img;
-    int i;
 
 
     // Bluetooth is checked through this
@@ -92,7 +84,9 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to BluetoothAdapter through BluetoothManager.
         final BluetoothManager bluetoothManager =
                 (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+
         mBluetoothAdapter = bluetoothManager.getAdapter();
+
         if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent,1);
@@ -124,23 +118,19 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         mHandler = new Handler();
-
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         items = new ArrayList<Artifact>();            //initialised items
-
-
         tts = new TextToSpeech(this,this);
         askPerm();
+
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
             finish();
+            System.exit(0);
         }
 
         //Krish start
         horizontalscroll = (HorizontalScrollView)findViewById(R.id.horizontalScrollView);
-
-
-        //Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        //setSupportActionBar(toolbar);
 
         TabLayout tabLayout = (TabLayout) findViewById(R.id.tabLayout);
 
@@ -152,16 +142,12 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         viewPager = (ViewPager) findViewById(R.id.pager);
 
         adapter = new Pager(getSupportFragmentManager(), tabLayout.getTabCount());
-
-
         viewPager.setAdapter(adapter);
-
-        //tabLayout.setupWithViewPager(viewPager);
 
         tabLayout.setOnTabSelectedListener((TabLayout.OnTabSelectedListener) this);
         //Krish end
 
-
+        stopService(new Intent(MainActivity.this,BackgroundScan.class));
 
         setupBluetoothAdapter();
         // Register for broadcasts on BluetoothAdapter state change
@@ -173,16 +159,9 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         imgs=getResources().obtainTypedArray(R.array.Arti_imgs);
 
 
-
-       /* img[0]=(ImageView)findViewById(R.id.imageView1);
-        img[1]=(ImageView)findViewById(R.id.imageView2);
-        img[2]=(ImageView)findViewById(R.id.imageView3);*/
-
         img = (ImageView)findViewById(R.id.imageView1);
 
 
-
-        startService(new Intent(this,BackgroundScan.class));
     }
 
 
@@ -306,12 +285,12 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             if (!mScanning) {
             menu.findItem(R.id.menu_stop).setVisible(false);
             menu.findItem(R.id.menu_scan).setVisible(true);
-            menu.findItem(R.id.scanning).setActionView(null);
+           // menu.findItem(R.id.scanning).setActionView(null);
             }
             else {
             menu.findItem(R.id.menu_stop).setVisible(true);
             menu.findItem(R.id.menu_scan).setVisible(false);
-            menu.findItem(R.id.scanning).setActionView(R.layout.actionbar_indeterminate_progress);
+          //  menu.findItem(R.id.scanning).setActionView(R.layout.actionbar_indeterminate_progress);
         }
         return true;
     }
@@ -320,6 +299,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     protected void onPause() {
 
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
+        stopService(new Intent(MainActivity.this,BackgroundScan.class));
         super.onPause();
         tts.stop();
 
@@ -329,13 +309,17 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     protected void onResume() {
         super.onResume();
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,new IntentFilter("my-event"));
+        //startService(new Intent(MainActivity.this,BackgroundScan.class));
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         tts.stop();
+        stopService(new Intent(MainActivity.this,BackgroundScan.class));
     }
+
+
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -349,13 +333,11 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                 {
                    items.clear();
                 }
-            startLeScan(true);
-
-                // service can be started here
-
+            //startLeScan(true);
+                startService(new Intent(this,BackgroundScan.class));
                 break;
             case R.id.menu_stop:
-                startLeScan(false);
+                //startLeScan(false);
                 break;
             case R.id.speak_out:
                 speakOut(descp[current]);
@@ -370,7 +352,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         //  return super.onOptionsItemSelected(item);
     }
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+  /*  @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     public void startLeScan(boolean enable) {
         if (enable) {
             // Stops scanning after a pre-defined scan period.
@@ -393,192 +375,11 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             //mBluetoothAdapter.stopLeScan(mLeScanCallback);
         }
         invalidateOptionsMenu();
-    }
-
-    //calculating the distance
-
-    double getDistance(int rssi, int txPower) {
-    /*
-     * RSSI = TxPower - 10 * n * lg(d)
-     * n = 2 (in free space)
-     *
-     * d = 10 ^ ((TxPower - RSSI) / (10 * n))
-     */
-
-        return Math.pow(10d, ((double) txPower - rssi) / (10 * 2));
-    }
 
 
-    private ScanCallback scanCallback=new ScanCallback(){
-
-        @Override
-        public void onScanResult(int callbackType, ScanResult result) {
-            super.onScanResult(callbackType, result);
-            ScanRecord mScanRecord=result.getScanRecord();
-            String record;
-
-            record = bytesToHexString(mScanRecord.getBytes());
-            Log.i("Got this:", record);
-            int rssi=result.getRssi();
-            Log.i("TX:",record.substring(58,60));
-            int txpower=Integer.parseInt(record.substring(58,60),16)-256;
-            Log.i("TXPOWER:",txpower+"");
-            double distance=getDistance(rssi,txpower);
-            Log.i("Distance:",distance+"");
-
-            if(tem>distance)
-            {
-                tem=distance;
-                temprec = record;
-                has=hashFunction(temprec.substring(18, 50), temprec.substring(50, 54), temprec.substring(54, 58));
-                has.setCurdist(tem);
-            }
-
-            Log.i("temp",String.valueOf(tem));
+    }*/
 
 
-            Log.i("ONSCANRESULT",Thread.currentThread().getName());
-
-
-            if(!items.contains(has))
-            items.add(has);
-            displayFragment();
-
-        }
-
-        @Override
-        public void onScanFailed(int errorCode) {
-            super.onScanFailed(errorCode);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                      Toast.makeText(getApplicationContext(),"NO Devices",Toast.LENGTH_SHORT).show();
-                }
-            });
-
-        }
-    };
-    //Need Modification ,this is also static
-    public void displayFragment() {
-        Log.i("DisplayFragment",Thread.currentThread().getName());
-
-
-         temp=items.get(0);
-        String min = temp.minor;
-        Log.i("MainActivity",min);
-
-
-      /*  img[0].setImageResource(temp.imgs.get(0));
-        img[1].setImageResource(temp.imgs.get(1));
-        img[2].setImageResource(temp.imgs.get(2));*/
-
-
-
-
-
-        if (Integer.parseInt(min)==1000)
-        {
-          temp.descrip=descp[0];
-            img.setImageResource(R.drawable.image_1);
-        }
-        else if (Integer.parseInt(min)==1001)
-        {
-            temp.descrip=descp[1];
-            img.setImageResource(R.drawable.image_2);
-        }
-        else if (Integer.parseInt(min)==1002)
-        {
-            temp.descrip=descp[2];
-            img.setImageResource(R.drawable.image_3);
-        }
-        else if (Integer.parseInt(min)==1003)
-        {
-            temp.descrip=descp[3];
-            img.setImageResource(R.drawable.image_4);
-        }
-        if (frag!= null) {
-            frag.settext(String.valueOf(temp.descrip));
-        }
-       else {
-            Log.i("MainActivity",String.valueOf(frag));
-        }
-
-        speakOut(temp.descrip);
-
-        /*tv.setText(""+distance);
-        if(current!=hashcode)
-        {
-            if(tts.isSpeaking())
-                tts.stop();
-            current =hashcode;
-            //tv.setText(descp[hashcode]);
-            tv.setText(""+distance);
-            img.setImageResource(imgs.getResourceId(hashcode,-1));
-            speakOut(descp[hashcode]);
-        }*/
-    }
-
-
-    public Artifact hashFunction(String uid,String maj,String min) {
-        //Create hashing code
-        Log.i("UUID",uid);
-        Log.i("MAJOR",maj);
-        Log.i("MINOR",min);
-        Artifact obj=new Artifact(uid,maj,min);
-        List<Integer> images = new ArrayList<>();           //initialised images
-        //This is static right now , fixed values are being added
-
-        if (Integer.parseInt(min)==1000)
-        {
-            images.add(imgs.getResourceId(0+1,-1));
-            images.add(imgs.getResourceId(0+2,-1));
-            images.add(imgs.getResourceId(0+3,-1));
-            obj.setDescrip(descp[0]);
-             obj.minor=String.valueOf(1000);
-            obj.setImgs(images);
-        }
-        else if (Integer.parseInt(min)==1001)
-        {
-            images.add(imgs.getResourceId(0+1,-1));
-            images.add(imgs.getResourceId(0+2,-1));
-            images.add(imgs.getResourceId(0+3,-1));
-            obj.setDescrip(descp[1]);
-            obj.minor =String.valueOf(1001);
-            obj.setImgs(images);
-        }
-        else if (Integer.parseInt(min)==1002)
-        {
-            images.add(imgs.getResourceId(0+1,-1));
-            images.add(imgs.getResourceId(0+2,-1));
-            images.add(imgs.getResourceId(0+3,-1));
-            obj.setDescrip(descp[2]);
-            obj.minor =String.valueOf(1002);
-            obj.setImgs(images);
-        }
-        else if (Integer.parseInt(min)==1003)
-        {
-            images.add(imgs.getResourceId(0+1,-1));
-            images.add(imgs.getResourceId(0+2,-1));
-            images.add(imgs.getResourceId(0+3,-1));
-            obj.setDescrip(descp[3]);
-            obj.minor =String.valueOf(1003);
-            obj.setImgs(images);
-        }
-
-
-
-
-        return obj;
-    }
-
-    @NonNull
-    public static String bytesToHexString(byte[] bytes) {
-        StringBuilder buffer = new StringBuilder();
-        for (int i = 0; i < bytes.length; i++) {
-            buffer.append(String.format("%02x", bytes[i]));
-        }
-        return buffer.toString();
-    }
 
     @Override
     public void onInit(final int status) {
@@ -592,6 +393,9 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                     Log.i("ONINIT",Thread.currentThread().getName());
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
                     {
+
+                        tts.speak("Welcome to the BLE Museum App", TextToSpeech.QUEUE_FLUSH, null);
+
                         tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
                             @Override
                             public void onStart(String s) {
@@ -612,13 +416,10 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
                     }
                     else
-                    {
-                        //tts.setOnUtteranceCompletedListener(listener);
-                        //btnSpeak.setEnabled(true);
-                        //speakOutWelcomeMessage();
-                    }
-                    tts.setPitch((float) 1.5);
-                    tts.setSpeechRate((float) 0.75);
+                    {                    }
+
+                    tts.setPitch((float) 1.0);
+                    tts.setSpeechRate((float) 0.9);
                     int result = tts.setLanguage(Locale.getDefault());
                     if (result == TextToSpeech.LANG_MISSING_DATA
                             || result == TextToSpeech.LANG_NOT_SUPPORTED) {
@@ -630,41 +431,28 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     }
     private void speakOut(final String text) {
 
-        //StringTokenizer sent=new StringTokenizer(text,".");
+
          Bundle temp = null;
          int i = 0;
-        //while(sent.hasMoreTokens()) {
-         //new Thread(new Runnable() {
-             //@Override
-             //public void run() {
                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                      Log.v("TextToSpeech","Using UtteranceProgressListener");
                      tts.speak(text, TextToSpeech.QUEUE_FLUSH,temp,"ID="+ i++);
                  }
-
-          //   }
-        // }).start();
-            /*else
-            {
-                tts.speak(sent.nextToken(),TextToSpeech.QUEUE_FLUSH,null);
-            }*/
-            //while(tts.isSpeaking());
         }
 
     private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            // Extract data included in the Intent
-          //  frag = (Tab_1)adapter.getRegisteredFragment(0);
-
 
             Bundle extras = intent.getExtras();
              minor = extras.getString("minor");
-            String message = extras.getString("message");
+             message = extras.getString("message");
             Log.d("receiver", "Got message: " + message);
             Log.d("receiver", "Got minor: " + minor);
 
             frag = (Tab_1)adapter.getRegisteredFragment(0);
+           // frag2 = (Tab_2)adapter.getRegisteredFragment(1);
+
             if (Integer.parseInt(minor)==1000)
             {
                 img.setImageResource(R.drawable.image_1);
@@ -672,6 +460,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             else if (Integer.parseInt(minor)==1001)
             {
                 img.setImageResource(R.drawable.image_2);
+               // frag2.setTrack(R.raw.song);
             }
             else if (Integer.parseInt(minor)==1002)
             {
@@ -681,11 +470,16 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             {
                 img.setImageResource(R.drawable.image_4);
             }
+            else if (Integer.parseInt(minor)==0000)
+            {
+                img.setImageResource(R.drawable.nothing);
+            }
             frag.settext(message);
-
             tts.stop();
             speakOut(message);
         }
     };
+    ;
+
  }
 

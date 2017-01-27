@@ -44,7 +44,19 @@
                     android:layout_marginTop="23dp"
                     android:id="@+id/music_name"
                     android:textStyle="normal|bold"
-                    android:textSize="30sp" />
+                    android:textSize="20sp" />
+
+                <ImageButton
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    app:srcCompat="@drawable/pause"
+                    android:id="@+id/pausemusic"
+                    android:scaleType="fitXY"
+                    android:layout_marginRight="24dp"
+                    android:layout_marginEnd="24dp"
+                    android:layout_centerVertical="true"
+                    android:layout_alignParentRight="true"
+                    android:layout_alignParentEnd="true" />
 
                 <ImageButton
                     android:layout_width="50dp"
@@ -53,10 +65,9 @@
                     android:id="@+id/playmusic"
                     android:scaleType="fitXY"
                     android:layout_marginRight="24dp"
-                    android:layout_marginEnd="24dp"
-                    android:layout_centerVertical="true"
-                    android:layout_alignParentRight="true"
-                    android:layout_alignParentEnd="true" />
+                    android:layout_marginEnd="12dp"
+                    android:layout_alignTop="@+id/pausemusic"
+                    android:layout_toStartOf="@+id/pausemusic" />
 
 
             </RelativeLayout>

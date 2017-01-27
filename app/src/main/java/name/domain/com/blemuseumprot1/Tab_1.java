@@ -119,6 +119,14 @@ public class Tab_1 extends Fragment {
     {
 
         textView.setText(str);
+
     }
 
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        setUserVisibleHint(true);
+        getFragmentManager().putFragment(outState, Tab_1.class.getName(), this);
+    }
 }

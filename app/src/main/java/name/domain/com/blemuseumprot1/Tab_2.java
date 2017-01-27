@@ -44,6 +44,8 @@ public class Tab_2 extends Fragment {
     private String mParam2;
 
     private OnFragmentInteractionListener mListener;
+    Integer songid;
+    MediaPlayer mp;
 
     public Tab_2() {
         // Required empty public constructor
@@ -84,7 +86,7 @@ public class Tab_2 extends Fragment {
                              Bundle savedInstanceState) {
 
         View v=inflater.inflate(R.layout.tab_2, container, false);
-
+        mp = new MediaPlayer();
         LinearLayoutManager mLayoutManager = new LinearLayoutManager(getActivity());
         RecyclerView recyclerView = (RecyclerView)v.findViewById(R.id.recyclerView_2);
         ContentAdapter adapter2 = new ContentAdapter(recyclerView.getContext());
@@ -140,29 +142,61 @@ public class Tab_2 extends Fragment {
 
         ImageView picture;
         TextView name;
-        ImageButton play;
+        ImageButton play,pause;
 
         ViewHolder(final LayoutInflater inflater, final ViewGroup parent) {
             super(inflater.inflate(R.layout.music_layout, parent, false));
             picture =(ImageView)itemView.findViewById(R.id.video);
             name = (TextView)itemView.findViewById(R.id.music_name);
             play =(ImageButton) itemView.findViewById(R.id.playmusic);
-
+            pause =(ImageButton) itemView.findViewById(R.id.pausemusic);
             play.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
 
-                    new LongOperation().execute("");
+                   // new LongOperation().execute("");
+                    playmusic();
 
 
+                }
+            });
+
+            pause.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                    pausemusic();
                 }
             });
         }
     }
 
+    private void playmusic() {
+
+        mp = MediaPlayer.create(getContext(), songid);
+        mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                // TODO Auto-generated method stub
+                mp.reset();
+                mp.release();
+            }
+
+        });
+        mp.start();
+    }
+
+    public void pausemusic()
+    {
+       mp.stop();
+    }
+
+
+
     public class ContentAdapter extends RecyclerView.Adapter<ViewHolder>
     {
-        private static final int LENGTH = 5;
+        private static final int LENGTH = 1;
         private final Drawable[] mPlacePictures;
         private final String[] musicname;
         public ContentAdapter(Context context) {
@@ -193,10 +227,18 @@ public class Tab_2 extends Fragment {
         }
     }
 
+
+    public void setTrack(int resource)
+    {
+        songid = resource;
+    }
+
+
+
 }
 
 
-class LongOperation extends AsyncTask<String, Void, String> {
+/*class LongOperation extends AsyncTask<String, Void, String> {
 
     private static final String TAG ="TAB" ;
     MediaPlayer player;
@@ -204,19 +246,20 @@ class LongOperation extends AsyncTask<String, Void, String> {
 
 
 
-    @Override
+   @Override
     protected String doInBackground(String... params) {
 
 
         player = new MediaPlayer();
-        player.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        player = MediaPlayer.create(this,son)
+       // player.setAudioStreamType(AudioManager.STREAM_MUSIC);
        // player.stop();
 
         if (!player.isPlaying()) {
 
             try {
 
-                player.setDataSource("http://f.wload.vc/files/sfd439/219159/Channa%20Mereya_64(wapking.fm).mp3");
+
                 player.prepare();
                 player.start();
 
@@ -245,5 +288,5 @@ class LongOperation extends AsyncTask<String, Void, String> {
     @Override
     protected void onProgressUpdate(Void... values) {}
 }
-
+*/
 
